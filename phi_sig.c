@@ -31,7 +31,7 @@ static void hash256(const uint8_t *in, size_t len, uint8_t *out) {
 #define SIG_PROOF_SIZE (SIG_CORE_SIZE * FRACTAL_DEPTH)
 
 // Recursive φ-iteration
-static uint64_t phi_iterate(uint64_t num, uint64_t den, uint8_t seed) {
+uint64_t phi_iterate(uint64_t num, uint64_t den, uint8_t seed) {
     // φ_{n+1} = 1 + 1/φ_n
     // = (φ_n + 1) / φ_n
     // = (num/den + 1) / (num/den)
@@ -42,7 +42,7 @@ static uint64_t phi_iterate(uint64_t num, uint64_t den, uint8_t seed) {
 }
 
 // Fractal self-referential transform
-static void phi_fractal(const uint8_t *input, size_t input_len,
+void phi_fractal(const uint8_t *input, size_t input_len,
                          uint8_t *output, size_t output_len) {
     uint8_t seed[64];
     hash256(input, input_len, seed);
@@ -96,7 +96,7 @@ int phi_sign(const uint8_t *msg, size_t msg_len,
     for (int depth = 1; depth < FRACTAL_DEPTH; depth++) {
         uint8_t *prev = sig + (depth - 1) * 32;
         uint8_t *layer = sig + depth * 32;
-        phi_fractal(prev, 32 * depth, layer, 32);
+        phi_fractal(prev, 32, layer, 32);
     }
     
     // Layer 8: Holographic consistency check
@@ -125,7 +125,7 @@ int phi_verify(const uint8_t *msg, size_t msg_len,
         const uint8_t *layer = sig + depth * 32;
         
         uint8_t expected_layer[32];
-        phi_fractal(prev, 32 * depth, expected_layer, 32);
+        phi_fractal(prev, 32, expected_layer, 32);
         
         if (memcmp(layer, expected_layer, 32) != 0) return 0;
     }
