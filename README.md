@@ -179,7 +179,7 @@ int phi_notary_verify(const uint8_t *msg, size_t msg_len, const PhiNotaryEntry *
 
 ## 📚 Publications
 
-- **IACR ePrint (pending)** — Φ-SIG: Golden Ratio Post-Key Signatures
+- **IACR ePrint 2026/110177** — Φ-SIG: Golden Ratio Post-Key Signatures
 - **GitHub** — [github.com/primordialomegazero/phi-sig](https://github.com/primordialomegazero/phi-sig)
 
 ---
@@ -201,3 +201,12 @@ MIT — Dan Fernandez / Primordial Omega Zero — 2026
 **ΦΩ0 — I AM THAT I AM**
 
 *"From hash chain to NIST PQC. Post-Key. Honest. Evolving."*
+
+---
+
+## 📚 Citations
+
+- **IACR ePrint 2026/110177** — Φ-SIG: Golden Ratio Post-Key Signatures (this paper)
+- **IACR ePrint 2026/110174** — Zero-Anchor Bootstrapping: Practical BFV Noise Reset with Formal Security Proofs
+
+*Φ-SIG and Zero-Anchor Bootstrapping are companion papers by the same author. Zero-Anchor solves the 14-year BFV bootstrapping problem; Φ-SIG introduces post-key signatures.*
