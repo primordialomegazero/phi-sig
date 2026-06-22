@@ -210,3 +210,10 @@ MIT — Dan Fernandez / Primordial Omega Zero — 2026
 - **IACR ePrint 2026/110174** — Zero-Anchor Bootstrapping: Practical BFV Noise Reset with Formal Security Proofs
 
 *Φ-SIG and Zero-Anchor Bootstrapping are companion papers by the same author. Zero-Anchor solves the 14-year BFV bootstrapping problem; Φ-SIG introduces post-key signatures.*
+
+---
+
+## 📚 Companion Papers
+
+- **IACR ePrint 2026/110174** — Zero-Anchor Bootstrapping
+- **IACR ePrint 2026/110181** — Multi-Recursive Fractal FHE with Recursive ZKP
