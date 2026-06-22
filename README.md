@@ -19,7 +19,7 @@ graph TB
     B --> C["φ-Transform"]
     C --> D["Core Signature (64B)"]
     D --> E["Self-Verification Proof"]
-    E --> F{φ(proof) == core ?}
+    E --> F["φ(proof) == core ?"]
     F -->|Yes| G["✅ VALID"]
     F -->|No| H["❌ TAMPERED"]
     
