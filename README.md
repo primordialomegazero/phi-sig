@@ -8,20 +8,70 @@
 
 ---
 
-## 🎥 Test Videos
+## 🏗️ Architecture
 
-| Test | Content | Result | Video |
-|------|---------|--------|-------|
-| **Test 1** | Core Keyless — 13/13 | TRUE KEYLESS ✅ | [Watch](assets/Phi-sigV2(test1).mp4) |
-| **Test 2** | Post-Quantum — 10/10 | POST-QUANTUM ✅ | [Watch](assets/Phi-sigV2(test2).mp4) |
-| **Test 3** | Full Blown — 6/6 | Φ-SIG COMPLETE ✅ | [Watch](assets/Phi-sigV2(test3).mp4) |
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ff69b4', 'primaryTextColor': '#000000', 'primaryBorderColor': '#ff1493', 'lineColor': '#ff69b4', 'tertiaryColor': '#1a1a1a', 'background': '#1a1a1a', 'mainBkg': '#1a1a1a', 'nodeBorder': '#ff69b4', 'clusterBkg': '#1a1a1a', 'clusterBorder': '#ff69b4', 'titleColor': '#ff69b4', 'edgeLabelBackground': '#1a1a1a', 'nodeTextColor': '#000000'}}}%%
+graph TB
+    subgraph "Φ-SIG Post-Key Signature Framework"
+        A[📝 Message] -->|SHA-256| B[φ-Fractal Transform]
+        B -->|7 Layers| C[Core Signature<br/>64 bytes]
+        C -->|Optional PQ| D[ML-DSA-87<br/>NIST FIPS 204 L5]
+        D -->|7283 bytes| E[PQ Signature]
+        C -->|Keyless| F[Verification]
+        E -->|Post-Quantum| F
+        F -->|Valid/Invalid| G[✅ Result]
+    end
+    
+    style A fill:#ff69b4,stroke:#ff1493,color:#000000
+    style B fill:#ff69b4,stroke:#ff1493,color:#000000
+    style C fill:#ff69b4,stroke:#ff1493,color:#000000
+    style D fill:#ff69b4,stroke:#ff1493,color:#000000
+    style E fill:#ff69b4,stroke:#ff1493,color:#000000
+    style F fill:#ff69b4,stroke:#ff1493,color:#000000
+    style G fill:#ff69b4,stroke:#ff1493,color:#000000
+```
+
+## 🔄 System Flow
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ff69b4', 'primaryTextColor': '#000000', 'primaryBorderColor': '#ff1493', 'lineColor': '#ff69b4', 'tertiaryColor': '#1a1a1a', 'background': '#1a1a1a', 'mainBkg': '#1a1a1a', 'nodeBorder': '#ff69b4', 'clusterBkg': '#1a1a1a', 'clusterBorder': '#ff69b4', 'titleColor': '#ff69b4', 'edgeLabelBackground': '#1a1a1a', 'nodeTextColor': '#000000'}}}%%
+flowchart LR
+    A[📝 Message] --> B[🔐 φ-SIG Core<br/>64 bytes]
+    B --> C{Keyless?}
+    C -->|Yes| D[✅ Verified<br/>Tamper-Evident]
+    C -->|No| E[❌ Rejected]
+    
+    B --> F[🔮 PQ Layer<br/>ML-DSA-87]
+    F --> G{Post-Quantum?}
+    G -->|Yes| H[✅ PQ Verified<br/>NIST FIPS 204 L5]
+    G -->|No| I[❌ Rejected]
+    
+    D --> J[🎯 Φ-SIG Complete]
+    H --> J
+    
+    style A fill:#ff69b4,stroke:#ff1493,color:#000000
+    style B fill:#ff69b4,stroke:#ff1493,color:#000000
+    style C fill:#ff69b4,stroke:#ff1493,color:#000000
+    style D fill:#ff69b4,stroke:#ff1493,color:#000000
+    style E fill:#ff69b4,stroke:#ff1493,color:#000000
+    style F fill:#ff69b4,stroke:#ff1493,color:#000000
+    style G fill:#ff69b4,stroke:#ff1493,color:#000000
+    style H fill:#ff69b4,stroke:#ff1493,color:#000000
+    style I fill:#ff69b4,stroke:#ff1493,color:#000000
+    style J fill:#ff69b4,stroke:#ff1493,color:#000000
+```
 
 ---
 
-## 🏗️ Architecture
+## 📊 Signature Layers
 
-Φ-SIG is a two-layer signature scheme: a 64-byte keyless core using the golden ratio's irreversibility, and an optional 7283-byte post-quantum layer using ML-DSA-87 (NIST FIPS 204 Level 5).
-
+| Layer | Algorithm | Size | Security | Status |
+|-------|-----------|------|----------|--------|
+| **Core** | φ-SIG (Golden Ratio) | 64 bytes | φ-irreversibility | ✅ TRUE KEYLESS |
+| **PQ** | ML-DSA-87 | 7,219 bytes | NIST FIPS 204 L5 | ✅ POST-QUANTUM |
+| **Auth** | φ-AUTH (Observer) | 64 bytes | Observer-entangled | ✅ KEYLESS AUTH |
+| **Notary** | φ-NOTARY | 136 bytes | Temporal + Chain | ✅ IMMUTABLE |
 
 ---
 
@@ -57,74 +107,23 @@ gcc -O3 test_video3.c phi_sig.c phi_sig_pq.c -loqs -lssl -lcrypto -lm -o test3 &
 
 ---
 
+## 🎥 Test Videos
+
+| Test | Content | Result | Video |
+|------|---------|--------|-------|
+| **Test 1** | Core Keyless — 13/13 | TRUE KEYLESS ✅ | [Watch](assets/Phi-sigV2(test1).mp4) |
+| **Test 2** | Post-Quantum — 10/10 | POST-QUANTUM ✅ | [Watch](assets/Phi-sigV2(test2).mp4) |
+| **Test 3** | Full Blown — 6/6 | Φ-SIG COMPLETE ✅ | [Watch](assets/Phi-sigV2(test3).mp4) |
+
+---
+
 ## 🧪 Test Results
 
-### Test 1 — Core Keyless (13/13)
-
-```
-━━━ PHASE 1: Sign + Verify ━━━
-  'Hello' → ✅
-  'ΦΩ0' → ✅
-  '' (Empty) → ✅
-  'Test 123!' → ✅
-  'Golden Ratio' → ✅
-
-━━━ PHASE 2: Security ━━━
-  Wrong message rejected: ✅
-  Tampered signature rejected: ✅
-
-━━━ PHASE 3: Properties ━━━
-  Deterministic: ✅
-  Different messages = different sigs: ✅
-  Size = 64 bytes: ✅
-  NULL query safe: ✅
-  Empty message safe: ✅
-
-━━━ PHASE 4: Speed ━━━
-  10,000 signatures: ✅
-```
-
-### Test 2 — Post-Quantum (10/10)
-
-```
-━━━ PHASE 1: PQ Sign + Verify ━━━
-  'Hello' → ✅ (7283 bytes)
-  'ΦΩ0' → ✅ (7283 bytes)
-  'Post-Quantum' → ✅ (7283 bytes)
-  'Keyless' → ✅ (7283 bytes)
-  'ML-DSA-87' → ✅ (7283 bytes)
-
-━━━ PHASE 2: Security ━━━
-  Wrong message rejected: ✅
-  Tampered PQ signature rejected: ✅
-
-━━━ PHASE 3: Properties ━━━
-  PQ Signature size = 7283 bytes: ✅
-  Combined Security (Core + PQ): ✅
-
-━━━ PHASE 4: PQ Speed ━━━
-  100 PQ signatures: ✅
-```
-
-### Test 3 — Full Blown (6/6)
-
-```
-━━━ PHASE 1: Core Keyless ━━━
-  5/5 messages preserved: ✅
-
-━━━ PHASE 2: Post-Quantum ━━━
-  3/3 PQ signatures valid: ✅
-
-━━━ PHASE 3: Security ━━━
-  Core tamper detection: ✅
-  PQ tamper detection: ✅
-
-━━━ PHASE 4: 100K Core Signatures ━━━
-  100,000 signatures: ✅
-
-━━━ PHASE 5: 1K PQ Signatures ━━━
-  1,000 PQ signatures: ✅
-```
+| Test | Result |
+|------|--------|
+| Test 1 — Core Keyless | 13/13 — Sign+Verify, Security, Properties, Speed ✅ |
+| Test 2 — Post-Quantum | 10/10 — PQ Sign+Verify, Security, Properties, Speed ✅ |
+| Test 3 — Full Blown | 6/6 — Core + PQ + 100K Speed ✅ |
 
 ---
 

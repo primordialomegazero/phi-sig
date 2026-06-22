@@ -1,3 +1,0 @@
-In phi_schnorr_sign, change output format to: R(33) || Y(33) || s(32)
-In phi_schnorr_verify, read R from [0:33], Y from [33:66], s from [66:98]
-Then use Y directly (no need for pk parameter)
