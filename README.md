@@ -177,6 +177,13 @@ int phi_notary_verify(const uint8_t *msg, size_t msg_len, const PhiNotaryEntry *
 
 ---
 
+## 📖 Documentation
+
+- [How φ Works](doc/PHI_MATH.md)
+- [Security Proof](doc/SECURITY_PROOF.md)
+- [Comparison with PQC](doc/COMPARISON.md)
+- [NIST Standardization](doc/NIST_STANDARDIZATION.md)
+
 ## 📚 Publications
 
 - **IACR ePrint 2026/110177** — Φ-SIG: Golden Ratio Post-Key Signatures
@@ -207,6 +214,13 @@ MIT — Dan Fernandez / Primordial Omega Zero — 2026
 
 ---
 
+## 📖 Documentation
+
+- [How φ Works](doc/PHI_MATH.md)
+- [Security Proof](doc/SECURITY_PROOF.md)
+- [Comparison with PQC](doc/COMPARISON.md)
+- [NIST Standardization](doc/NIST_STANDARDIZATION.md)
+
 ## 📚 Publications
 
 | Paper | ID | Title | Status |
@@ -219,6 +233,13 @@ MIT — Dan Fernandez / Primordial Omega Zero — 2026
 
 
 ---
+
+## 📖 Documentation
+
+- [How φ Works](doc/PHI_MATH.md)
+- [Security Proof](doc/SECURITY_PROOF.md)
+- [Comparison with PQC](doc/COMPARISON.md)
+- [NIST Standardization](doc/NIST_STANDARDIZATION.md)
 
 ## 📚 Publications
 

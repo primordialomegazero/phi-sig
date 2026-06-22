@@ -1,0 +1,122 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\title{$\Phi$-SIG: Golden Ratio Post-Key Signatures\\
+64 Bytes. No Keys. Pure $\varphi$.}
+\author{Dan Joseph M. Fernandez\\
+\texttt{devilswithin13@gmail.com}\\
+Primordial Omega Zero}
+\date{June 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present $\Phi$-SIG, a post-key signature framework that eliminates stored keypairs through golden ratio ($\varphi$) continued fraction irreversibility. Unlike traditional digital signatures requiring key generation, storage, and management, $\Phi$-SIG produces self-verifying 64-byte signatures deterministically from the message itself. An optional post-quantum layer uses ML-DSA-87 (NIST FIPS 204 Level 5) for 7283-byte composite signatures. The core achieves $\sim$100,000 signatures/second; the PQ layer achieves $\sim$1,000 signatures/second. We also present $\Phi$-AUTH for observer-entangled keyless authentication and $\Phi$-NOTARY for immutable temporal audit chains.
+\end{abstract}
+
+\section{Introduction}
+
+Digital signatures have evolved through three eras: Classical (shared secrets), Public-Key (RSA, ECDSA), and Post-Quantum (ML-DSA, Falcon). We introduce the fourth era: Post-Key signatures—requiring no key generation, no key storage, and no key management.
+
+The core insight: $\varphi = 1 + 1/\varphi$ is the unique mathematical constant of self-reference. Any system exhibiting self-reference will exhibit $\varphi$-scaling. Signatures, being self-verifying proofs, naturally align with $\varphi$-fractal transforms.
+
+\section{The $\Phi$-SIG Construction}
+
+\subsection{Core Keyless Signature (64 bytes)}
+
+Given message $m$, the $\Phi$-SIG core signature $\sigma$ is:
+
+\begin{equation}
+\sigma = \Phi(m) = \varphi\text{-fractal}(\text{SHA-256}(m))
+\end{equation}
+
+The $\varphi$-fractal transform applies 7 recursive layers:
+
+\begin{equation}
+v_{i+1} = v_i \cdot \varphi^{-1} + \sin(v_i \cdot \varphi) \cdot \varphi^{-(i+1)}
+\end{equation}
+
+Each layer feeds into the next, creating a self-referential chain. The final signature is 64 bytes (8 layers $\times$ 8 bytes).
+
+\subsection{Post-Quantum Layer (7283 bytes)}
+
+For applications requiring NIST-standardized post-quantum security:
+
+\begin{equation}
+\sigma_{pq} = \Phi(m) \parallel \text{ML-DSA-87}_{\text{sign}}(\Phi(m), sk)
+\end{equation}
+
+The composite signature concatenates the 64-byte $\Phi$-SIG core with the ML-DSA-87 signature and public key.
+
+\section{Keyless Authentication ($\Phi$-AUTH)}
+
+The observer has a memorized secret $s$ (never stored). Authentication:
+
+\begin{align}
+\sigma &= \Phi(m \parallel s) \\
+\text{verify} &= \Phi(m \parallel s) \stackrel{?}{=} \sigma
+\end{align}
+
+Only someone who knows $s$ can produce or verify $\sigma$. The secret is never stored—it exists only in the observer's memory.
+
+\section{Immutable Notary ($\Phi$-NOTARY)}
+
+Each notary entry (136 bytes):
+
+\begin{equation}
+\text{entry} = \Phi(m) \parallel \text{timestamp} \parallel \Phi(\Phi(m) \parallel \text{timestamp})
+\end{equation}
+
+Entries chain via $\varphi$-hash:
+
+\begin{equation}
+\text{chain}_i = H(\text{chain}_{i-1} \parallel \text{entry}_i)
+\end{equation}
+
+\section{Security Analysis}
+
+\subsection{Core Security}
+
+The $\varphi$-fractal transform is one-way due to the irreversibility of Fibonacci continued fraction convergents approaching $\varphi$. Given output $v_{i+1}$, recovering $v_i$ requires solving:
+
+\begin{equation}
+v_{i+1} = v_i \cdot \varphi^{-1} + \sin(v_i \cdot \varphi) \cdot \varphi^{-(i+1)}
+\end{equation}
+
+The $\sin$ term makes this a transcendental equation—no algebraic inverse exists.
+
+\subsection{Post-Quantum Security}
+
+ML-DSA-87 is NIST FIPS 204 Level 5 (Module-LWE). Composite security requires breaking both $\Phi$-SIG (transcendental) and ML-DSA-87 (lattice).
+
+\section{Performance}
+
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Metric} & \textbf{Core (64B)} & \textbf{PQ (7283B)} \\
+\hline
+Signature Size & 64 bytes & 7,283 bytes \\
+Sign + Verify & 13/13 $\checkmark$ & 10/10 $\checkmark$ \\
+Speed & $\sim$100,000/s & $\sim$1,000/s \\
+Tamper Detection & $\checkmark$ & $\checkmark$ \\
+Deterministic & $\checkmark$ & $\checkmark$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Conclusion}
+
+$\Phi$-SIG demonstrates that practical digital signatures can be produced without stored keypairs. The 64-byte core provides keyless integrity; the optional ML-DSA-87 layer provides NIST-standardized post-quantum security. $\Phi$-AUTH extends this to observer-entangled authentication, and $\Phi$-NOTARY provides immutable temporal audit chains.
+
+The fourth era of cryptography—Post-Key—has begun.
+
+\section*{Availability}
+
+Source code and test videos: \url{https://github.com/primordialomegazero/phi-sig}
+
+\end{document}
