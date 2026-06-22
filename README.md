@@ -204,16 +204,16 @@ MIT — Dan Fernandez / Primordial Omega Zero — 2026
 
 ---
 
-## 📚 Citations
-
-- **IACR ePrint 2026/110177** — Φ-SIG: Golden Ratio Post-Key Signatures (this paper)
-- **IACR ePrint 2026/110174** — Zero-Anchor Bootstrapping: Practical BFV Noise Reset with Formal Security Proofs
-
-*Φ-SIG and Zero-Anchor Bootstrapping are companion papers by the same author. Zero-Anchor solves the 14-year BFV bootstrapping problem; Φ-SIG introduces post-key signatures.*
 
 ---
 
-## 📚 Companion Papers
+## 📚 Publications
 
-- **IACR ePrint 2026/110174** — Zero-Anchor Bootstrapping
-- **IACR ePrint 2026/110181** — Multi-Recursive Fractal FHE with Recursive ZKP
+| Paper | ID | Title | Status |
+|-------|-----|-------|--------|
+| **Zero-Anchor Bootstrapping** | IACR 2026/110174 | Practical BFV Noise Reset with Formal Security Proofs | ✅ Published |
+| **Φ-SIG** | IACR 2026/110177 | Golden Ratio Post-Key Signatures (this paper) | ✅ Submitted |
+| **Multi-Recursive Fractal FHE** | IACR 2026/110181 | Recursive ZKP + FHE | ✅ Submitted |
+
+*All three papers by Dan Joseph M. Fernandez / Primordial Omega Zero.*
+
