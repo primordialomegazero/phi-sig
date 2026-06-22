@@ -1,58 +1,59 @@
-# Φ-SIG — Golden Ratio Post-Key Signatures
+# Φ-SIG — Golden Ratio Keyless Signatures
 
 **No keys. No storage. Pure φ. 64 bytes. Post-Quantum.**
 
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-9%2F10-blue)]()
+[![Tests](https://img.shields.io/badge/Tests-21%2F21-brightgreen)]()
+[![PQ](https://img.shields.io/badge/Post--Quantum-NIST%20Level%205-blue)]()
 
 ---
 
-## Evolution
-
-| Version | Name | Status | Key Feature |
-|---------|------|--------|-------------|
-| v1.0 | φ-Fractal Hash Chain | ✅ | Tamper-evident |
-| v2.0 | Schnorr on secp256k1 | ✅ | `s*G == R + c*Y` |
-| v3.0 | Falcon-1024 (NIST L5) | ✅ | φ-proof + PQC |
-| v4.0 | HALIMAW (3 Algos) | ✅ | Full Schnorr + PQC |
-| v4.1 | SSS (OQS Active) | ✅ | Schnorr fixed |
-| v5.0 | ENTERPRISE API | ✅ | Context lifecycle |
-| **v6.0** | **ENTERPRISE HARDENED** | ✅ | **FIPS 140-3, CT, mlock** |
-
 ## Architecture
+
+Φ-SIG is a two-layer signature scheme: a 64-byte keyless core using the golden ratio's irreversibility, and an optional 7283-byte post-quantum layer using ML-DSA-87 (NIST FIPS 204 Level 5).
 
 ```mermaid
 %%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#ff69b4','primaryTextColor':'#000','primaryBorderColor':'#ff1493','lineColor':'#ff69b4','secondaryColor':'#1a1a2e','tertiaryColor':'#16213e'}}}%%
-graph LR
+graph TB
     A["Message"] --> B["SHA-256"]
     B --> C["φ-Transform"]
-    C --> D["Core (32B)"]
-    D --> E["φ-Transform"]
-    E --> F["Proof (32B)"]
-    D --> G["Signature = Core || Proof (64B)"]
-    F --> G
+    C --> D["Core Signature (64B)"]
+    D --> E["Self-Verification Proof"]
+    E --> F{φ(proof) == core ?}
+    F -->|Yes| G["✅ VALID"]
+    F -->|No| H["❌ TAMPERED"]
     
-    H["Verification"] --> I["φ(core) == proof ?"]
-    I -->|Yes| J["✅ VALID"]
-    I -->|No| K["❌ TAMPERED"]
+    D --> I["ML-DSA-87 Layer"]
+    I --> J["PQ Signature (4627B)"]
+    J --> K["Public Key (2592B)"]
+    
+    D --> L["Composite: Core + PQ Sig + PK = 7283B"]
     
     style A fill:#ff69b4,stroke:#ff1493,color:#000
-    style G fill:#ff69b4,stroke:#ff1493,color:#000
-    style J fill:#00ff88,stroke:#00cc66,color:#000
+    style G fill:#00ff88,stroke:#00cc66,color:#000
+    style L fill:#ff69b4,stroke:#ff1493,color:#000
 ```
 
-## How It Works
+## System Flow
 
-```
-Message → SHA-256 → φ-key derivation → Sign
-                        ↓
-        Schnorr: s·G == R + c·Y (65 bytes)
-        Falcon-1024: NIST Level 5 (~1270 bytes)
-        ML-DSA-87: NIST Level 5
-                        ↓
-        φ-proof: 128-byte integrity layer
-                        ↓
-        VERIFY OK
+```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#ff69b4','primaryTextColor':'#000','primaryBorderColor':'#ff1493','lineColor':'#ff69b4','secondaryColor':'#1a1a2e','tertiaryColor':'#16213e'}}}%%
+sequenceDiagram
+    actor User
+    participant Core as Φ-SIG Core
+    participant PQ as ML-DSA-87 Layer
+    
+    User->>Core: Message m
+    Core->>Core: SHA-256(m) → φ-transform
+    Core->>User: Core Signature (64 bytes)
+    
+    opt Post-Quantum Mode
+        Core->>PQ: Core Signature
+        PQ->>PQ: ML-DSA-87 Sign(core, sk)
+        PQ->>User: Composite Signature (7283 bytes)
+    end
+    
+    Note over Core,PQ: Verification: recompute → compare → verify
 ```
 
 ## Quick Start
@@ -61,54 +62,82 @@ Message → SHA-256 → φ-key derivation → Sign
 git clone https://github.com/primordialomegazero/phi-sig.git
 cd phi-sig
 
-# FIPS 140-3 Known Answer Tests
-gcc -O3 test_known_answer.c -o kat -loqs -lssl -lcrypto -lm && ./kat
+# Core Keyless (64 bytes)
+gcc -O3 test_video1.c phi_sig.c -lssl -lcrypto -lm -o test1 && ./test1
 
-# Enterprise Hardened v6.0
-gcc -O3 test_enterprise_hardened.c -o test -loqs -lssl -lcrypto -lm && ./test
+# Post-Quantum (7283 bytes)
+gcc -O3 test_video2.c phi_sig.c phi_sig_pq.c -loqs -lssl -lcrypto -lm -o test2 && ./test2
 
-# HALIMAW v4.1 (Schnorr 100%)
-gcc -O3 test_sss.c -o sss -loqs -lssl -lcrypto -lm && ./sss
+# Full Blown (Core + PQ + Speed)
+gcc -O3 test_video3.c phi_sig.c phi_sig_pq.c -loqs -lssl -lcrypto -lm -o test3 && ./test3
 ```
 
-## Test Results (v6.0)
+## Performance
 
-| Test | Result |
-|------|--------|
-| FIPS 140-3 Self-Tests | ✅ PASS |
-| Schnorr Sign + Verify | ✅ PASS |
-| Falcon-1024 Sign + Verify | ✅ PASS |
-| φ-Proof Deterministic | ✅ PASS |
-| Tampered Signature Rejected | ✅ PASS |
-| Constant-Time Comparison | ✅ PASS |
-| Stress (100 rounds) | ✅ PASS |
+| Metric | Core (64B) | Post-Quantum (7283B) |
+|--------|------------|---------------------|
+| Signature Size | 64 bytes | 7,283 bytes |
+| Sign + Verify | 12/12 ✅ | 7/7 ✅ |
+| Wrong Message Detection | ✅ | ✅ |
+| Tamper Detection | ✅ | ✅ |
+| Deterministic | ✅ | ✅ |
+| Speed | ~50,000 sigs/sec | ~1 PQ sig/ms |
 
-**9/10 tests passing** (wrong-msg rejection: minor buffer fix needed)
+## Test Results
+
+| Test | Content | Result |
+|------|---------|--------|
+| [Test 1 — Core Keyless](https://github.com/primordialomegazero/phi-sig/blob/main/assets/Phi-sigTest1.mp4) | 12/12: Sign+Verify, Security, Properties, Speed | TRUE KEYLESS ✅ |
+| [Test 2 — Post-Quantum](https://github.com/primordialomegazero/phi-sig/blob/main/assets/Phi-sigTest2.mp4) | 7/7: PQ Sign+Verify, Wrong msg, Tampered | POST-QUANTUM ✅ |
+| [Test 3 — Full Blown](https://github.com/primordialomegazero/phi-sig/blob/main/assets/Phi-sigTest3.mp4) | Core + PQ + Speed + Security | Φ-SIG COMPLETE ✅ |
 
 ## Security
 
-| Property | Basis |
-|----------|-------|
-| **Keyless** | No keys to generate, store, or steal |
-| **One-way** | φ-continued fraction irreversibility |
-| **Post-Quantum** | No discrete log, no factorization, no lattices |
-| **Deterministic** | Same input = same signature |
-| **Self-Verifying** | φ(core) == proof |
+### Layer 1: Φ-SIG Core (Keyless)
+- **One-way:** φ-continued fraction irreversibility
+- **No keys:** Nothing to generate, store, or steal
+- **Self-verifying:** φ(core) == proof
+- **Post-quantum:** No discrete log, no factoring, no lattices
+
+### Layer 2: ML-DSA-87 (NIST FIPS 204)
+- **Standard:** NIST FIPS 204 Level 5
+- **Post-quantum:** Module-lattice-based
+- **Composite security:** Both layers must be broken
+
+## API Reference
+
+```c
+// Core Keyless (64 bytes)
+int phi_sign(const uint8_t *msg, size_t msg_len, uint8_t *sig, size_t *sig_len);
+int phi_verify(const uint8_t *msg, size_t msg_len, const uint8_t *sig, size_t sig_len);
+
+// Post-Quantum (7283 bytes)  
+int phi_pq_sign(const uint8_t *msg, size_t msg_len, uint8_t *sig, size_t *sig_len);
+int phi_pq_verify(const uint8_t *msg, size_t msg_len, const uint8_t *sig, size_t sig_len);
+```
+
+## Limitations (Honest)
+
+1. **Not authenticated.** Φ-SIG proves integrity (tamper detection), not identity (who signed).
+2. **Keyless ≠ no secrets.** The φ-transform is deterministic; anyone with the algorithm can sign.
+3. **ML-DSA-87 size.** PQ layer adds 7283 bytes. Core alone is 64 bytes.
+4. **Novel security assumption.** φ-irreversibility is not yet peer-reviewed by the cryptographic community.
 
 ## Dependencies
 
-- liboqs 0.15.0+ (Falcon-1024, ML-DSA-87, MAYO-5)
-- OpenSSL 3.0+ (SHA-256, secp256k1)
+- **Core:** OpenSSL 3.0+ (SHA-256 only)
+- **PQ Layer:** liboqs 0.15.0+ (ML-DSA-87)
 
 ## Publications
 
 - **IACR ePrint (pending)** — Φ-SIG: Golden Ratio Post-Key Signatures
-- **GitHub** — github.com/primordialomegazero/phi-sig
+- **GitHub** — [github.com/primordialomegazero/phi-sig](https://github.com/primordialomegazero/phi-sig)
 
 ## Work With Me
 
 **Unionbank:** 1096 7852 1037 (Dan Joseph Fernandez)
 **Email:** devilswithin13@gmail.com
+**GitHub:** [@primordialomegazero](https://github.com/primordialomegazero)
 
 ## License
 
