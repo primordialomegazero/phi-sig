@@ -1,0 +1,49 @@
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ff69b4', 'primaryTextColor': '#000000', 'primaryBorderColor': '#ff1493', 'lineColor': '#ff69b4', 'tertiaryColor': '#1a1a1a', 'background': '#1a1a1a', 'mainBkg': '#1a1a1a', 'nodeBorder': '#ff69b4', 'clusterBkg': '#1a1a1a', 'clusterBorder': '#ff69b4', 'titleColor': '#ff69b4', 'edgeLabelBackground': '#1a1a1a', 'nodeTextColor': '#000000'}}}%%
+graph TB
+    subgraph "Φ-SIG Post-Key Signature Framework"
+        A[Message] -->|SHA-256| B[φ-Fractal Transform]
+        B -->|7 Layers| C[Core Signature<br/>64 bytes]
+        C -->|Optional PQ| D[ML-DSA-87<br/>NIST FIPS 204 L5]
+        D -->|7283 bytes| E[PQ Signature]
+        C -->|Keyless| F[Verification]
+        E -->|Post-Quantum| F
+        F -->|Valid/Invalid| G[Result]
+    end
+    
+    style A fill:#ff69b4,stroke:#ff1493,color:#000000
+    style B fill:#ff69b4,stroke:#ff1493,color:#000000
+    style C fill:#ff69b4,stroke:#ff1493,color:#000000
+    style D fill:#ff69b4,stroke:#ff1493,color:#000000
+    style E fill:#ff69b4,stroke:#ff1493,color:#000000
+    style F fill:#ff69b4,stroke:#ff1493,color:#000000
+    style G fill:#ff69b4,stroke:#ff1493,color:#000000
+```
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ff69b4', 'primaryTextColor': '#000000', 'primaryBorderColor': '#ff1493', 'lineColor': '#ff69b4', 'tertiaryColor': '#1a1a1a', 'background': '#1a1a1a', 'mainBkg': '#1a1a1a', 'nodeBorder': '#ff69b4', 'clusterBkg': '#1a1a1a', 'clusterBorder': '#ff69b4', 'titleColor': '#ff69b4', 'edgeLabelBackground': '#1a1a1a', 'nodeTextColor': '#000000'}}}%%
+flowchart LR
+    A[📝 Message] --> B[🔐 φ-SIG Core<br/>64 bytes]
+    B --> C{Keyless?}
+    C -->|Yes| D[✅ Verified<br/>Tamper-Evident]
+    C -->|No| E[❌ Rejected]
+    
+    B --> F[🔮 PQ Layer<br/>ML-DSA-87]
+    F --> G{Post-Quantum?}
+    G -->|Yes| H[✅ PQ Verified<br/>NIST FIPS 204 L5]
+    G -->|No| I[❌ Rejected]
+    
+    D --> J[🎯 Φ-SIG Complete]
+    H --> J
+    
+    style A fill:#ff69b4,stroke:#ff1493,color:#000000
+    style B fill:#ff69b4,stroke:#ff1493,color:#000000
+    style C fill:#ff69b4,stroke:#ff1493,color:#000000
+    style D fill:#ff69b4,stroke:#ff1493,color:#000000
+    style E fill:#ff69b4,stroke:#ff1493,color:#000000
+    style F fill:#ff69b4,stroke:#ff1493,color:#000000
+    style G fill:#ff69b4,stroke:#ff1493,color:#000000
+    style H fill:#ff69b4,stroke:#ff1493,color:#000000
+    style I fill:#ff69b4,stroke:#ff1493,color:#000000
+    style J fill:#ff69b4,stroke:#ff1493,color:#000000
+```
