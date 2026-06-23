@@ -4,20 +4,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define PHI_SIG_PUBLICKEYBYTES 33
+#define PHI_SIG_SECRETKEYBYTES 32
+#define PHI_SIG_BYTES 98  // 65 (sig) + 33 (pk)
 
-#define PHI_SIG_BYTES 64
-
-int phi_sign(const uint8_t *msg, size_t msg_len,
-             uint8_t *sig, size_t *sig_len);
-
-int phi_verify(const uint8_t *msg, size_t msg_len,
-               const uint8_t *sig, size_t sig_len);
-
-#ifdef __cplusplus
-}
-#endif
+int phi_keygen(uint8_t *pk, uint8_t *sk);
+int phi_sign(const uint8_t *msg, size_t msg_len, uint8_t *sig, size_t *sig_len);
+int phi_verify(const uint8_t *msg, size_t msg_len, const uint8_t *sig, size_t sig_len);
 
 #endif

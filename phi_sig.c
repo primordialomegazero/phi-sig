@@ -1,94 +1,144 @@
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
+#include "phi_sig.h"
+#include <openssl/ec.h>
+#include <openssl/bn.h>
+#include <openssl/obj_mac.h>
 #include <openssl/sha.h>
+#include <openssl/rand.h>
+#include <string.h>
 
-#define PHI 1.6180339887498948482
-#define PHI_INV 0.6180339887498948482
-#define SIG_CORE_SIZE 32
-#define SIG_PROOF_SIZE 32
-#define SIG_TOTAL_SIZE (SIG_CORE_SIZE + SIG_PROOF_SIZE)
+// True Schnorr Σ-Protocol on secp256k1
+// Verification: s·G == R + c·Y
 
-/*
- * φ-convergent transform with message binding
- * Each byte depends on ALL previous bytes + seed
- */
-static void phi_transform(const uint8_t *seed, size_t seed_len,
-                          uint8_t *output, size_t output_len) {
-    uint64_t a = (uint64_t)(PHI * 1e9);
-    uint64_t b = 1000000000;
+int phi_keygen(uint8_t *pk, uint8_t *sk) {
+    EC_KEY *ec = EC_KEY_new_by_curve_name(NID_secp256k1);
+    if (!ec) return -1;
+    EC_KEY_generate_key(ec);
     
-    for (size_t i = 0; i < output_len; i++) {
-        // Mix seed into state
-        a += seed[i % seed_len] * 0x0101010101010101ULL;
-        b ^= seed[(i + 7) % seed_len] * 0x0101010101010101ULL;
-        
-        // φ-convergent: F_{n+1}/F_n
-        uint64_t next_a = a + b;
-        uint64_t next_b = a;
-        
-        if (next_b == 0) next_b = 1;
-        
-        // Mix output position for uniqueness
-        uint64_t pos_mix = (uint64_t)i * 0xA5A5A5A5A5A5A5A5ULL;
-        output[i] = (uint8_t)(((next_a ^ pos_mix) * 255) / next_b);
-        
-        a = next_a;
-        b = next_b;
-    }
-}
-
-static void hash_message(const uint8_t *msg, size_t msg_len, uint8_t *hash) {
-    SHA256(msg, msg_len, hash);
+    const BIGNUM *priv = EC_KEY_get0_private_key(ec);
+    const EC_POINT *pub = EC_KEY_get0_public_key(ec);
+    const EC_GROUP *g = EC_KEY_get0_group(ec);
+    
+    BN_bn2binpad(priv, sk, 32);
+    EC_POINT_point2oct(g, pub, POINT_CONVERSION_COMPRESSED, pk, 33, NULL);
+    
+    EC_KEY_free(ec);
+    return 0;
 }
 
 int phi_sign(const uint8_t *msg, size_t msg_len,
-             uint8_t *sig, size_t *sig_len) {
-    if (!sig || !sig_len || *sig_len < SIG_TOTAL_SIZE) {
-        if (sig_len) *sig_len = SIG_TOTAL_SIZE;
-        return -1;
-    }
+              uint8_t *sig, size_t *sig_len) {
+    // Generate ephemeral key for signing
+    uint8_t sk[32], pk[33];
+    phi_keygen(pk, sk);
     
-    // Hash message (ensures different messages = different hashes)
-    uint8_t hash[32];
-    hash_message(msg, msg_len, hash);
+    EC_GROUP *g = EC_GROUP_new_by_curve_name(NID_secp256k1);
+    BN_CTX *ctx = BN_CTX_new();
+    BIGNUM *order = BN_new();
+    EC_GROUP_get_order(g, order, ctx);
     
-    // φ-transform hash → core signature
-    phi_transform(hash, 32, sig, SIG_CORE_SIZE);
+    BIGNUM *priv = BN_new();
+    BN_bin2bn(sk, 32, priv);
     
-    // φ-transform core → self-verification proof
-    phi_transform(sig, SIG_CORE_SIZE, sig + SIG_CORE_SIZE, SIG_PROOF_SIZE);
+    // R = k·G
+    BIGNUM *k = BN_new();
+    BN_rand_range(k, order);
+    EC_POINT *R = EC_POINT_new(g);
+    EC_POINT_mul(g, R, k, NULL, NULL, ctx);
+    EC_POINT_point2oct(g, R, POINT_CONVERSION_COMPRESSED, sig, 33, ctx);
     
-    *sig_len = SIG_TOTAL_SIZE;
+    // Y = priv·G
+    EC_POINT *Y = EC_POINT_new(g);
+    EC_POINT_mul(g, Y, priv, NULL, NULL, ctx);
+    unsigned char Y_bytes[33];
+    EC_POINT_point2oct(g, Y, POINT_CONVERSION_COMPRESSED, Y_bytes, 33, ctx);
+    
+    // c = SHA256(R || Y || msg)
+    SHA256_CTX sha;
+    SHA256_Init(&sha);
+    SHA256_Update(&sha, sig, 33);
+    SHA256_Update(&sha, Y_bytes, 33);
+    SHA256_Update(&sha, msg, msg_len);
+    unsigned char c_hash[32];
+    SHA256_Final(c_hash, &sha);
+    
+    BIGNUM *c = BN_new();
+    BN_bin2bn(c_hash, 32, c);
+    BN_mod(c, c, order, ctx);
+    
+    // s = k + c·priv
+    BIGNUM *s = BN_new();
+    BIGNUM *cx = BN_new();
+    BN_mod_mul(cx, c, priv, order, ctx);
+    BN_mod_add(s, k, cx, order, ctx);
+    BN_bn2binpad(s, sig + 33, 32);
+    
+    // Copy public key into signature
+    memcpy(sig + 65, pk, 33);
+    *sig_len = 98;  // 65 (sig) + 33 (pk)
+    
+    BN_free(priv); BN_free(k); BN_free(c); BN_free(s); BN_free(cx);
+    BN_free(order); EC_POINT_free(R); EC_POINT_free(Y);
+    BN_CTX_free(ctx); EC_GROUP_free(g);
     return 0;
 }
 
 int phi_verify(const uint8_t *msg, size_t msg_len,
                const uint8_t *sig, size_t sig_len) {
-    if (!sig || sig_len < SIG_TOTAL_SIZE) return 0;
+    if (sig_len < 98) return 0;  // REJECT invalid size
     
-    // Recompute expected core from message
-    uint8_t hash[32];
-    hash_message(msg, msg_len, hash);
+    EC_GROUP *g = EC_GROUP_new_by_curve_name(NID_secp256k1);
+    BN_CTX *ctx = BN_CTX_new();
+    BIGNUM *order = BN_new();
+    EC_GROUP_get_order(g, order, ctx);
     
-    uint8_t expected_core[32];
-    phi_transform(hash, 32, expected_core, SIG_CORE_SIZE);
-    
-    // Check core — MUST use constant-time comparison
-    uint8_t diff = 0;
-    for (int i = 0; i < SIG_CORE_SIZE; i++) {
-        diff |= sig[i] ^ expected_core[i];
-    }
-    if (diff != 0) return 0;
-    
-    // Check self-verification proof
-    uint8_t expected_proof[32];
-    phi_transform(sig, SIG_CORE_SIZE, expected_proof, SIG_PROOF_SIZE);
-    
-    diff = 0;
-    for (int i = 0; i < SIG_PROOF_SIZE; i++) {
-        diff |= sig[i + SIG_CORE_SIZE] ^ expected_proof[i];
+    // Parse R from signature
+    EC_POINT *R = EC_POINT_new(g);
+    if (!EC_POINT_oct2point(g, R, sig, 33, ctx)) {
+        EC_POINT_free(R); BN_free(order); BN_CTX_free(ctx); EC_GROUP_free(g);
+        return 0;  // REJECT invalid point
     }
     
-    return diff == 0 ? 1 : 0;
+    // Parse s from signature
+    BIGNUM *s = BN_new();
+    BN_bin2bn(sig + 33, 32, s);
+    
+    // Parse Y (public key) from signature
+    EC_POINT *Y = EC_POINT_new(g);
+    if (!EC_POINT_oct2point(g, Y, sig + 65, 33, ctx)) {
+        EC_POINT_free(R); EC_POINT_free(Y); BN_free(s); BN_free(order);
+        BN_CTX_free(ctx); EC_GROUP_free(g);
+        return 0;  // REJECT invalid public key
+    }
+    
+    // c = SHA256(R || Y || msg)
+    SHA256_CTX sha;
+    SHA256_Init(&sha);
+    SHA256_Update(&sha, sig, 33);        // R
+    SHA256_Update(&sha, sig + 65, 33);    // Y (pk)
+    SHA256_Update(&sha, msg, msg_len);    // message
+    unsigned char c_hash[32];
+    SHA256_Final(c_hash, &sha);
+    
+    BIGNUM *c = BN_new();
+    BN_bin2bn(c_hash, 32, c);
+    BN_mod(c, c, order, ctx);
+    
+    // Verify: s·G == R + c·Y
+    EC_POINT *sG = EC_POINT_new(g);
+    EC_POINT_mul(g, sG, s, NULL, NULL, ctx);
+    
+    EC_POINT *cY = EC_POINT_new(g);
+    EC_POINT_mul(g, cY, NULL, Y, c, ctx);
+    
+    EC_POINT *RcY = EC_POINT_new(g);
+    EC_POINT_add(g, RcY, R, cY, ctx);
+    
+    int result = (EC_POINT_cmp(g, sG, RcY, ctx) == 0) ? 1 : 0;
+    
+    BN_free(s); BN_free(c); BN_free(order);
+    EC_POINT_free(R); EC_POINT_free(Y); EC_POINT_free(sG);
+    EC_POINT_free(cY); EC_POINT_free(RcY);
+    BN_CTX_free(ctx); EC_GROUP_free(g);
+    
+    return result;
 }
