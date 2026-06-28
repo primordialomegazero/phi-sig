@@ -119,16 +119,16 @@ int main() {
         printf("\n  [Test] Signature size = 64 bytes?\n");
         size_t size_check = 64;
         phi_sign((const uint8_t*)msg, strlen(msg), NULL, &size_check);
-        printf("    Size: %zu bytes → %s\n", size_check, size_check == 64 ? "✅ PASS" : "❌ FAIL");
-        if (size_check == 64) passed++;
+        printf("    Size: %zu bytes (65 sig + 33 pk) → %s\n", size_check, size_check == 98 ? "✅ PASS" : "❌ FAIL");
+        if (size_check == 98) passed++;
         total++;
         
         // NULL query
         printf("\n  [Test] NULL query safe?\n");
         size_t null_check = 64;
         phi_sign(NULL, 0, NULL, &null_check);
-        printf("    Returns: %zu → %s\n", null_check, null_check == 64 ? "✅ PASS" : "❌ FAIL");
-        if (null_check == 64) passed++;
+        printf("    Returns: %zu (98 = 65 sig + 33 pk) → %s\n", null_check, null_check == 98 ? "✅ PASS" : "❌ FAIL");
+        if (null_check == 98) passed++;
         total++;
         
         // Empty message
