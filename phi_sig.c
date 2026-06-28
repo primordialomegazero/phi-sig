@@ -1,40 +1,55 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <openssl/evp.h>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
 #include <openssl/sha.h>
 #include <openssl/obj_mac.h>
-#include <openssl/rand.h>
 
 #define PHI_SIG_PUBLICKEYBYTES 33
 #define PHI_SIG_SECRETKEYBYTES 32
 #define PHI_SIG_BYTES 98
 
-// Deterministic nonce using SHA256(phi || msg || sk) — NO BN_mod needed
-static void phi_deterministic_nonce(const uint8_t *msg, size_t msg_len,
-                                     const uint8_t *sk, BIGNUM *k) {
-    SHA256_CTX sha;
-    unsigned char hash[32];
-    
-    SHA256_Init(&sha);
-    const double phi = 1.6180339887498948482;
-    SHA256_Update(&sha, &phi, sizeof(phi));
-    SHA256_Update(&sha, msg, msg_len);
-    SHA256_Update(&sha, sk, 32);
-    SHA256_Final(hash, &sha);
-    
-    // Ensure k is non-zero and reasonable size
-    hash[0] |= 1;  // Ensure non-zero
-    BN_bin2bn(hash, 32, k);
+// ═══ SHA256 using EVP (OpenSSL 3.0 compatible) ═══
+static void sha256_evp(const uint8_t *data, size_t len, uint8_t *hash) {
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(ctx, data, len);
+    EVP_DigestFinal_ex(ctx, hash, NULL);
+    EVP_MD_CTX_free(ctx);
 }
 
+// Concatenate multiple buffers and hash
+static void sha256_multi(const uint8_t **bufs, const size_t *lens, int count, uint8_t *hash) {
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    for (int i = 0; i < count; i++) {
+        EVP_DigestUpdate(ctx, bufs[i], lens[i]);
+    }
+    EVP_DigestFinal_ex(ctx, hash, NULL);
+    EVP_MD_CTX_free(ctx);
+}
+
+// ═══ Deterministic φ-based nonce ═══
+static void phi_deterministic_nonce(const uint8_t *msg, size_t msg_len,
+                                     const uint8_t *sk, BIGNUM *k, BN_CTX *ctx, BIGNUM *order) {
+    const double phi = 1.6180339887498948482;
+    const uint8_t *bufs[] = {(const uint8_t*)&phi, msg, sk};
+    const size_t lens[] = {sizeof(phi), msg_len, 32};
+    uint8_t hash[32];
+    sha256_multi(bufs, lens, 3, hash);
+    
+    hash[0] |= 1;  // Ensure non-zero
+    BN_bin2bn(hash, 32, k);
+    BN_nnmod(k, k, order, ctx);
+    if (BN_is_zero(k)) BN_one(k);
+}
+
+// ═══ Key Generation (deterministic from φ) ═══
 int phi_keygen(uint8_t *pk, uint8_t *sk) {
     const double phi = 1.6180339887498948482;
-    SHA256_CTX sha;
-    SHA256_Init(&sha);
-    SHA256_Update(&sha, &phi, sizeof(phi));
-    SHA256_Final(sk, &sha);
+    sha256_evp((const uint8_t*)&phi, sizeof(phi), sk);
     
     EC_GROUP *g = EC_GROUP_new_by_curve_name(NID_secp256k1);
     BN_CTX *ctx = BN_CTX_new();
@@ -52,6 +67,7 @@ int phi_keygen(uint8_t *pk, uint8_t *sk) {
     return 0;
 }
 
+// ═══ SIGN ═══
 int phi_sign(const uint8_t *msg, size_t msg_len,
               uint8_t *sig, size_t *sig_len) {
     if (!sig) {
@@ -74,10 +90,7 @@ int phi_sign(const uint8_t *msg, size_t msg_len,
 
     // Deterministic nonce
     BIGNUM *k = BN_new();
-    phi_deterministic_nonce(msg ? msg : (const uint8_t*)"", msg_len, sk, k);
-    // Reduce k modulo order
-    BN_nnmod(k, k, order, ctx);
-    if (BN_is_zero(k)) BN_one(k);
+    phi_deterministic_nonce(msg ? msg : (const uint8_t*)"", msg_len, sk, k, ctx, order);
     
     // R = k·G
     EC_POINT *R = EC_POINT_new(g);
@@ -91,13 +104,12 @@ int phi_sign(const uint8_t *msg, size_t msg_len,
     EC_POINT_point2oct(g, Y, POINT_CONVERSION_COMPRESSED, Y_bytes, 33, ctx);
 
     // c = SHA256(R || Y || msg)
-    SHA256_CTX sha;
-    SHA256_Init(&sha);
-    SHA256_Update(&sha, sig, 33);
-    SHA256_Update(&sha, Y_bytes, 33);
-    if (msg && msg_len > 0) SHA256_Update(&sha, msg, msg_len);
-    unsigned char c_hash[32];
-    SHA256_Final(c_hash, &sha);
+    uint8_t c_hash[32];
+    {
+        const uint8_t *bufs[] = {sig, Y_bytes, msg ? msg : (const uint8_t*)""};
+        const size_t lens[] = {33, 33, msg_len};
+        sha256_multi(bufs, lens, 3, c_hash);
+    }
 
     BIGNUM *c = BN_new();
     BN_bin2bn(c_hash, 32, c);
@@ -119,6 +131,7 @@ int phi_sign(const uint8_t *msg, size_t msg_len,
     return 0;
 }
 
+// ═══ VERIFY ═══
 int phi_verify(const uint8_t *msg, size_t msg_len,
                const uint8_t *sig, size_t sig_len) {
     if (!msg || !sig) return 0;
@@ -148,13 +161,13 @@ int phi_verify(const uint8_t *msg, size_t msg_len,
     unsigned char Y_bytes[33];
     EC_POINT_point2oct(g, Y, POINT_CONVERSION_COMPRESSED, Y_bytes, 33, ctx);
     
-    SHA256_CTX sha;
-    SHA256_Init(&sha);
-    SHA256_Update(&sha, sig, 33);
-    SHA256_Update(&sha, Y_bytes, 33);
-    SHA256_Update(&sha, msg, msg_len);
-    unsigned char c_hash[32];
-    SHA256_Final(c_hash, &sha);
+    // Recompute c = SHA256(R || Y || msg)
+    uint8_t c_hash[32];
+    {
+        const uint8_t *bufs[] = {sig, Y_bytes, msg};
+        const size_t lens[] = {33, 33, msg_len};
+        sha256_multi(bufs, lens, 3, c_hash);
+    }
 
     BIGNUM *c = BN_new();
     BN_bin2bn(c_hash, 32, c);
