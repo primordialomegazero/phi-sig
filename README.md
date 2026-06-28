@@ -125,7 +125,7 @@ sequenceDiagram
 flowchart TD
     A[Message] --> B[φ-SIG Core<br/>98 bytes]
     B --> C[SHA-256<br/>φ-sig]
-    C --> D[Chaotic Iteration 1<br/>x = φ·x·(1-x)]
+    C --> D[Chaotic Iteration 1<br/>x = φ·x·1 minus x]
     D --> E[Chaotic Iteration 2]
     E --> F[...]
     F --> G[Chaotic Iteration 7]
